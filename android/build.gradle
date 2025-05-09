@@ -1,0 +1,26 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// Define novo diretório de build para o projeto raiz
+def newBuildDir = rootProject.layout.buildDirectory.dir("../../build").get().asFile
+rootProject.buildDir = newBuildDir
+
+// Aplica novo diretório de build para subprojetos
+subprojects {
+    def newSubprojectBuildDir = new File(newBuildDir, project.name)
+    project.buildDir = newSubprojectBuildDir
+}
+
+// Força avaliação do módulo :app antes dos subprojetos
+subprojects {
+    evaluationDependsOn(":app")
+}
+
+// Task clean
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
