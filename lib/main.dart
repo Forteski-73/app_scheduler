@@ -1,5 +1,23 @@
 import 'package:flutter/material.dart';
 
+// Screens
+import 'package:oxf_client/screens/clientes.dart';
+import 'package:oxf_client/screens/agendas.dart';
+import 'package:oxf_client/screens/atendimentos.dart';
+import 'package:oxf_client/screens/cliente_adicionar.dart';
+import 'package:oxf_client/screens/cliente_editar.dart';
+import 'package:oxf_client/screens/agenda_adicionar.dart';
+import 'package:oxf_client/screens/agenda_editar.dart';
+import 'package:oxf_client/screens/atendimento_editar.dart';
+import 'package:oxf_client/screens/atendimento_adicionar.dart';
+
+// Models
+import 'package:oxf_client/models/cliente.dart';
+import 'package:oxf_client/models/agenda.dart';
+import 'package:oxf_client/models/atendimento.dart';
+
+import 'package:flutter_localizations/flutter_localizations.dart'; 
+
 void main() {
   runApp(const MyApp());
 }
@@ -10,8 +28,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Oxf Client',
+      title: 'Oxford Atendimento',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.purple,
@@ -54,40 +81,131 @@ class MyApp extends StatelessWidget {
           labelStyle: const TextStyle(color: Colors.purple),
         ),
       ),
-      home: const HomePage(),
+      home: const Home(),
+      routes: {
+        '/cliente_adicionar': (context) => ClienteAdicionar(),
+        '/agenda_adicionar': (context) => AgendaAdicionar(),
+        '/atendimento_adicionar': (context) => AtendimentoAdicionar(), // <-- ROTA ADICIONADA
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/cliente_editar') {
+          final cliente = settings.arguments as Cliente;
+          return MaterialPageRoute(
+            builder: (context) => ClienteEditar(cliente: cliente),
+          );
+        }
+
+        if (settings.name == '/agenda_editar') {
+          final agenda = settings.arguments as Agenda;
+          return MaterialPageRoute(
+            builder: (context) => AgendaEditar(agenda: agenda),
+          );
+        }
+
+        if (settings.name == '/atendimento_editar') {
+          final atendimento = settings.arguments as Atendimento;
+          return MaterialPageRoute(
+            builder: (context) => AtendimentoEditar(atendimento: atendimento),
+          );
+        }
+
+        return null;
+      },
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
+class Home extends StatelessWidget {
+  const Home({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Página Inicial'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar'),
-            ),
-            const SizedBox(height: 20),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.settings),
-            ),
-          ],
+        title: const Text(
+          "AGENDAMENTO",
+          style: TextStyle(color: Colors.white),
         ),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.navigation),
+      body: Stack(
+        children: [
+          // Imagem de background que cobre toda a área
+          Positioned.fill(
+            child: Stack(
+              children: [
+                Image.asset(
+                  'assets/background.png',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+                Container(
+                  color: Color.fromRGBO(255, 255, 255, 0.6),
+                ),
+              ],
+            ),
+          ),
+          // Conteúdo com padding e scroll
+          ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.person, color: Colors.white, size: 28),
+                label: const Text(
+                  'Clientes',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Clientes()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.event, color: Colors.white, size: 28),
+                label: const Text(
+                  'Agendas',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Agendas()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.assignment, color: Colors.white, size: 28),
+                label: const Text(
+                  'Atendimentos',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Atendimentos()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        height: 40,
+        alignment: Alignment.center,
+        color: Colors.purple[100],
+        child: const Text(
+          'Versão 1.0.0',
+          style: TextStyle(
+            color: Colors.purple,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

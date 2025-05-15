@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/cliente.dart';
+import 'package:oxf_client/services/db_service.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class ClienteEditar extends StatefulWidget {
   final Cliente cliente;
@@ -19,6 +21,19 @@ class _ClienteEditarState extends State<ClienteEditar> {
   late TextEditingController ufController;
   late TextEditingController precoController;
 
+  final List<String> estados = [
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  ];
+
+  final telefoneFormatter = MaskTextInputFormatter(
+    mask: '(##) ##### ####',
+    filter: { "#": RegExp(r'[0-9]') },
+  );
+
+  late String? ufSelecionada;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +43,10 @@ class _ClienteEditarState extends State<ClienteEditar> {
     cidadeController = TextEditingController(text: widget.cliente.cidade);
     ufController = TextEditingController(text: widget.cliente.uf);
     precoController = TextEditingController(text: widget.cliente.precoAtendimento.toString());
+    ufController = TextEditingController(text: widget.cliente.uf);
+    ufSelecionada = (widget.cliente.uf != null && widget.cliente.uf!.isNotEmpty)
+        ? widget.cliente.uf!.toUpperCase()
+        : null;
   }
 
   @override
@@ -41,7 +60,7 @@ class _ClienteEditarState extends State<ClienteEditar> {
     super.dispose();
   }
 
-  void salvar() {
+  void salvar() async {
     if (_formKey.currentState!.validate()) {
       final clienteEditado = Cliente(
         id: widget.cliente.id,
@@ -53,14 +72,37 @@ class _ClienteEditarState extends State<ClienteEditar> {
         precoAtendimento: double.tryParse(precoController.text) ?? 0.0,
         dataCadastro: widget.cliente.dataCadastro,
       );
-      Navigator.of(context).pop(clienteEditado);
+
+      final db = DatabaseService();
+      await db.atualizarCliente(clienteEditado);
+
+      Navigator.of(context).pop(clienteEditado); // opcional: retorne o cliente atualizado
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Cliente')),
+      appBar: AppBar(
+        title: const Text(
+          "Editar Cliente",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.arrow_back,
+              color: Colors.purple,
+            ),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -68,11 +110,74 @@ class _ClienteEditarState extends State<ClienteEditar> {
           child: ListView(
             children: [
               TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
+              const SizedBox(height: 16),
               TextFormField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-              TextFormField(controller: telefoneController, decoration: const InputDecoration(labelText: 'Telefone')),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: telefoneController,
+                decoration: const InputDecoration(labelText: 'Telefone'),
+                keyboardType: TextInputType.number,
+                inputFormatters: [telefoneFormatter],
+              ),
+              const SizedBox(height: 16),
               TextFormField(controller: cidadeController, decoration: const InputDecoration(labelText: 'Cidade')),
-              TextFormField(controller: ufController, decoration: const InputDecoration(labelText: 'UF')),
-              TextFormField(controller: precoController, decoration: const InputDecoration(labelText: 'Preço Atendimento')),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: ufSelecionada,
+                decoration: const InputDecoration(labelText: 'UF'),
+                items: estados.map((uf) {
+                  return DropdownMenuItem<String>(
+                    value: uf,
+                    child: Text(uf),
+                  );
+                }).toList(),
+                onChanged: (valor) {
+                  setState(() {
+                    ufSelecionada = valor;
+                    ufController.text = valor ?? '';
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Selecione uma UF';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: precoController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: "Preço do Atendimento",
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_drop_up),
+                        onPressed: () {
+                          final valorAtual = double.tryParse(precoController.text) ?? 0.0;
+                          precoController.text = (valorAtual + 1).toStringAsFixed(2);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_drop_down),
+                        onPressed: () {
+                          final valorAtual = double.tryParse(precoController.text) ?? 0.0;
+                          final novoValor = (valorAtual - 1).clamp(0.0, double.infinity);
+                          precoController.text = novoValor.toStringAsFixed(2);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               ElevatedButton(onPressed: salvar, child: const Text('Salvar')),
             ],

@@ -3,6 +3,12 @@ import 'package:oxf_client/models/atendimento.dart';
 import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/models/cliente.dart';
 import 'package:oxf_client/services/db_service.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../models/cliente.dart';
+import '../models/agenda.dart';
+import '../models/atendimento.dart';
 
 class AtendimentoAdicionar extends StatefulWidget {
   const AtendimentoAdicionar({Key? key}) : super(key: key);
@@ -13,45 +19,218 @@ class AtendimentoAdicionar extends StatefulWidget {
 
 class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
   final _formKey = GlobalKey<FormState>();
+  final LayerLink _layerLink = LayerLink();
+  final LayerLink _layerLinkAgenda = LayerLink();
+
+  final FocusNode _clienteFocusNode = FocusNode();
+  final FocusNode _agendaFocusNode = FocusNode();
+
+  late TextEditingController _clienteController;
+  late TextEditingController _agendaController;
   late TextEditingController _descricaoController;
   late TextEditingController _valorPagoController;
 
-  late List<Cliente> _clientes = [];
+  List<Cliente> _clientes = [];
+  List<Cliente> _clientesFiltrados = [];
   Cliente? _clienteSelecionado;
-  late List<Agenda> _agendas = [];
+
+  List<Agenda> _agendas = [];
+  List<Agenda> _agendasFiltradas = [];
   Agenda? _agendaSelecionada;
 
   bool _realizado = false;
   bool _compareceu = false;
   bool _pagou = false;
 
+  OverlayEntry? _overlayEntry;
+  OverlayEntry? _overlayAgenda;
+
   @override
   void initState() {
     super.initState();
+    _clienteController = TextEditingController();
+    _agendaController = TextEditingController();
     _descricaoController = TextEditingController();
     _valorPagoController = TextEditingController();
     _carregarClientes();
+
+    _clienteFocusNode.addListener(() {
+      if (!_clienteFocusNode.hasFocus) _removeOverlay();
+    });
+
+    _agendaFocusNode.addListener(() {
+      if (!_agendaFocusNode.hasFocus) _removeAgendaOverlay();
+    });
   }
 
   Future<void> _carregarClientes() async {
     final clientes = await DatabaseService().listarClientes();
     setState(() {
       _clientes = clientes;
-      _clienteSelecionado = null;
-      _agendaSelecionada = null;
-      _agendas = [];
+      _clientesFiltrados = clientes;
     });
   }
 
   Future<void> _carregarAgendas() async {
     if (_clienteSelecionado != null) {
-      final agendas = await DatabaseService().listarAgendas();
+      final todasAgendas = await DatabaseService().listarAgendas();
+      final agendasFiltradas = todasAgendas
+          .where((agenda) => agenda.clienteId == _clienteSelecionado!.id)
+          .toList();
+
       setState(() {
-        _agendas = agendas
-            .where((agenda) => agenda.clienteId == _clienteSelecionado!.id)
-            .toList();
-        _agendaSelecionada = _agendas.isNotEmpty ? _agendas.first : null;
+        _agendas = agendasFiltradas;
+        _agendasFiltradas = agendasFiltradas;
+        _agendaSelecionada = null;
+        _agendaController.clear();
       });
+    } else {
+      setState(() {
+        _agendas = [];
+        _agendasFiltradas = [];
+        _agendaSelecionada = null;
+        _agendaController.clear();
+      });
+    }
+  }
+
+  void _filtrarClientes(String query) {
+    setState(() {
+      _clientesFiltrados = _clientes
+          .where((c) => c.nome.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+    _mostrarOverlay();
+  }
+
+  void _filtrarAgendas(String query) {
+    setState(() {
+      _agendasFiltradas = _agendas
+          .where((a) =>
+              (a.nomeCliente?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+              DateFormat('dd/MM/yyyy HH:mm').format(a.dataHora).contains(query))
+          .toList();
+          });
+    _mostrarAgendaOverlay();
+  }
+
+  void _mostrarOverlay() {
+    _removeOverlay();
+    final renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+
+    final overlay = Overlay.of(context);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        width: size.width - 32,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          offset: const Offset(0, 56),
+          showWhenUnlinked: false,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _clientesFiltrados.length,
+              itemBuilder: (context, index) {
+                final cliente = _clientesFiltrados[index];
+                return ListTile(
+                  title: Text(cliente.nome),
+                  onTap: () {
+                    setState(() {
+                      _clienteSelecionado = cliente;
+                      _clienteController.text = cliente.nome;
+                      _clientesFiltrados = _clientes;
+                    });
+                    _carregarAgendas();
+                    _removeOverlay();
+                    FocusScope.of(context).unfocus();
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _mostrarAgendaOverlay() {
+    _removeAgendaOverlay();
+    final renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+
+    final overlay = Overlay.of(context);
+    _overlayAgenda = OverlayEntry(
+      builder: (context) => Positioned(
+        width: size.width - 32,
+        child: CompositedTransformFollower(
+          link: _layerLinkAgenda,
+          offset: const Offset(0, 56),
+          showWhenUnlinked: false,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _agendasFiltradas.length,
+              itemBuilder: (context, index) {
+                final agenda = _agendasFiltradas[index];
+                return ListTile(
+                  title: Text(
+                    '${agenda.nomeCliente} - ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}',
+                  ),
+                  onTap: () {
+                    setState(() {
+                      _agendaSelecionada = agenda;
+                      _agendaController.text =
+                          '${agenda.nomeCliente} - ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}';
+                      _agendasFiltradas = _agendas;
+                    });
+                    _removeAgendaOverlay();
+                    FocusScope.of(context).unfocus();
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(_overlayAgenda!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _removeAgendaOverlay() {
+    _overlayAgenda?.remove();
+    _overlayAgenda = null;
+  }
+
+  void _abrirListaClientes() {
+    if (_overlayEntry != null) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+      _clienteFocusNode.unfocus();
+    } else {
+      FocusScope.of(context).requestFocus(_clienteFocusNode);
+      _mostrarOverlay();
+    }
+  }
+
+  void _abrirListaAgendas() {
+    if (_overlayAgenda != null) {
+      _overlayAgenda?.remove();
+      _overlayAgenda = null;
+      _agendaFocusNode.unfocus();
+    } else {
+      _agendaFocusNode.requestFocus();
+      _mostrarAgendaOverlay();
     }
   }
 
@@ -59,7 +238,8 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
     if (_formKey.currentState!.validate()) {
       if (_clienteSelecionado == null || _agendaSelecionada == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Selecione um cliente e uma agenda')));
+          const SnackBar(content: Text('Selecione um cliente e uma agenda')),
+        );
         return;
       }
 
@@ -73,86 +253,112 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
         dataHoraFim: null,
         descricao: _descricaoController.text,
         realizado: _realizado,
-        nomeCliente: _clienteSelecionado!.nome, // Aqui está o nome do cliente
+        nomeCliente: _clienteSelecionado!.nome,
       );
 
       final id = await DatabaseService().inserirAtendimento(novoAtendimento);
 
       if (id > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Atendimento salvo com sucesso')));
+          const SnackBar(content: Text('Atendimento salvo com sucesso')),
+        );
         Navigator.pop(context, novoAtendimento);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao salvar atendimento')));
+          const SnackBar(content: Text('Erro ao salvar atendimento')),
+        );
       }
     }
   }
 
   @override
   void dispose() {
+    _clienteController.dispose();
+    _agendaController.dispose();
     _descricaoController.dispose();
     _valorPagoController.dispose();
+    _clienteFocusNode.dispose();
+    _agendaFocusNode.dispose();
+    _removeOverlay();
+    _removeAgendaOverlay();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Adicionar Atendimento')),
+      appBar: AppBar(
+        title:
+            const Text("Adicionar Atendimento", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(Icons.arrow_back, color: Colors.purple),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              DropdownButtonFormField<Cliente>(
-                value: _clienteSelecionado,
-                decoration: const InputDecoration(labelText: 'Cliente'),
-                onChanged: (cliente) {
-                  setState(() {
-                    _clienteSelecionado = cliente;
-                    _carregarAgendas();
-                  });
-                },
-                items: _clientes.map((cliente) {
-                  return DropdownMenuItem<Cliente>(
-                    value: cliente,
-                    child: Text(cliente.nome),
-                  );
-                }).toList(),
-                validator: (value) =>
-                    value == null ? 'Selecione um cliente' : null,
+              // Campo Cliente
+              CompositedTransformTarget(
+                link: _layerLink,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _clienteController,
+                        focusNode: _clienteFocusNode,
+                        decoration: const InputDecoration(labelText: 'Cliente'),
+                        onChanged: _filtrarClientes,
+                        validator: (value) =>
+                            _clienteSelecionado == null ? 'Selecione um cliente' : null,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onPressed: _abrirListaClientes,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
 
-              DropdownButtonFormField<Agenda>(
-                value: _agendaSelecionada,
-                decoration: const InputDecoration(labelText: 'Agenda'),
-                onChanged: (agenda) {
-                  setState(() {
-                    _agendaSelecionada = agenda;
-                  });
-                },
-                items: _agendas.map((agenda) {
-                  return DropdownMenuItem<Agenda>(
-                    value: agenda,
-                    child: Text(
-                      'Agenda ${agenda.id} - ${agenda.nomeCliente} - ${agenda.dataHora}',
+              // Campo Agenda
+              CompositedTransformTarget(
+                link: _layerLinkAgenda,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _agendaController,
+                        focusNode: _agendaFocusNode,
+                        decoration: const InputDecoration(labelText: 'Agenda'),
+                        onChanged: _filtrarAgendas,
+                        validator: (value) =>
+                            _agendaSelecionada == null ? 'Selecione uma agenda' : null,
+                      ),
                     ),
-                  );
-                }).toList(),
-                validator: (value) =>
-                    value == null ? 'Selecione uma agenda' : null,
+                    IconButton(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onPressed: _abrirListaAgendas,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
 
               TextFormField(
                 controller: _descricaoController,
                 decoration: const InputDecoration(labelText: 'Descrição'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Informe a descrição'
-                    : null,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Informe a descrição' : null,
               ),
               const SizedBox(height: 16),
 
@@ -160,36 +366,25 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
                 controller: _valorPagoController,
                 decoration:
                     const InputDecoration(labelText: 'Valor Pago (opcional)'),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 16),
 
               SwitchListTile(
                 title: const Text('Realizado'),
                 value: _realizado,
-                onChanged: (val) {
-                  setState(() {
-                    _realizado = val;
-                  });
-                },
+                onChanged: (val) => setState(() => _realizado = val),
               ),
               SwitchListTile(
                 title: const Text('Compareceu'),
                 value: _compareceu,
-                onChanged: (val) {
-                  setState(() {
-                    _compareceu = val;
-                  });
-                },
+                onChanged: (val) => setState(() => _compareceu = val),
               ),
               SwitchListTile(
                 title: const Text('Pagou'),
                 value: _pagou,
-                onChanged: (val) {
-                  setState(() {
-                    _pagou = val;
-                  });
-                },
+                onChanged: (val) => setState(() => _pagou = val),
               ),
 
               const SizedBox(height: 20),

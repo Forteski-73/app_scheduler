@@ -18,7 +18,7 @@ class DatabaseCreate {
     final path = join(await getDatabasesPath(), 'oxf_client.db');
     return await openDatabase(
       path,
-      version: 2,  // Atualize a versão aqui caso seja necessário
+      version: 1,  // Atualize a versão aqui caso seja necessário
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -52,14 +52,14 @@ class DatabaseCreate {
       CREATE TABLE atendimentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cliente_id INTEGER NOT NULL,
-        agenda_id INTEGER NOT NULL,  -- Nova coluna para 'agenda_id'
+        agenda_id INTEGER NOT NULL,
         data_hora_inicio TEXT NOT NULL,
         compareceu INTEGER NOT NULL,
         pagou INTEGER NOT NULL,
         valor_pago REAL,
         data_hora_fim TEXT,
-        descricao TEXT NOT NULL,  -- Nova coluna para 'descricao'
-        realizado INTEGER NOT NULL,  -- Coluna 'realizado'
+        descricao TEXT NOT NULL,
+        realizado INTEGER NOT NULL,
         FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE,
         FOREIGN KEY (agenda_id) REFERENCES agenda(id) ON DELETE CASCADE ON UPDATE CASCADE  -- Chave estrangeira para 'agenda'
       )

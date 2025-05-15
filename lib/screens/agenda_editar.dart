@@ -72,37 +72,56 @@ class _AgendaEditarState extends State<AgendaEditar> {
     }
   }
 
-void _salvar() {
-  if (_formKey.currentState!.validate()) {
-    final novaAgenda = Agenda(
-      id: widget.agenda.id,
-      clienteId: widget.agenda.clienteId,
-      dataHora: _dataHora,
-      observacoes: _observacoesController.text,
-      nomeCliente: widget.agenda.nomeCliente,
-    );
+  void _salvar() {
+    if (_formKey.currentState!.validate()) {
+      final novaAgenda = Agenda(
+        id: widget.agenda.id,
+        clienteId: widget.agenda.clienteId,
+        dataHora: _dataHora,
+        observacoes: _observacoesController.text,
+        nomeCliente: widget.agenda.nomeCliente,
+      );
 
-    // Atualizar a agenda no banco
-    DatabaseService().atualizarAgenda(novaAgenda).then((rowsAffected) {
-      if (rowsAffected > 0) {
-        Navigator.pop(context, novaAgenda);
-      } else {
+      // Atualizar a agenda no banco
+      DatabaseService().atualizarAgenda(novaAgenda).then((rowsAffected) {
+        if (rowsAffected > 0) {
+          Navigator.pop(context, novaAgenda);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao atualizar agenda. Tente novamente.')),
+          );
+        }
+      }).catchError((error) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Erro ao atualizar agenda. Tente novamente.')),
         );
-      }
-    }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao atualizar agenda. Tente novamente.')),
-      );
-    });
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Agenda')),
+      appBar: AppBar(
+        title: const Text(
+          "Editar Agenda",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.arrow_back,
+              color: Colors.purple,
+            ),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -112,7 +131,11 @@ void _salvar() {
             children: [
               Text(
                 'Cliente: ${widget.agenda.nomeCliente ?? "Não informado"}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
               const SizedBox(height: 16),
               // Campo de data
@@ -121,11 +144,12 @@ void _salvar() {
                 child: InputDecorator(
                   decoration: const InputDecoration(
                     labelText: 'Data',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.black),
+                    suffixIcon: Icon(Icons.calendar_today, color: Colors.purple),
                   ),
                   child: Text(
                     _dataController.text,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
                   ),
                 ),
               ),
@@ -136,11 +160,12 @@ void _salvar() {
                 child: InputDecorator(
                   decoration: const InputDecoration(
                     labelText: 'Hora',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.black),
+                    suffixIcon: Icon(Icons.access_time, color: Colors.purple),
                   ),
                   child: Text(
                     _horaController.text,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
                   ),
                 ),
               ),
@@ -150,14 +175,18 @@ void _salvar() {
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'Observações',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.black),
                 ),
+                style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 20),
               Center(
-                child: ElevatedButton(
-                  onPressed: _salvar,
-                  child: const Text('Salvar Alterações'),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _salvar,
+                    child: const Text('Salvar'),
+                  ),
                 ),
               ),
             ],
@@ -166,4 +195,6 @@ void _salvar() {
       ),
     );
   }
+
+
 }

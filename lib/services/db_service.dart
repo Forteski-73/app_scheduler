@@ -121,7 +121,6 @@ class DatabaseService {
         clientes.nome AS nome_cliente
       FROM atendimentos
       JOIN clientes ON atendimentos.cliente_id = clientes.id
-      WHERE atendimentos.realizado = 0
       ORDER BY atendimentos.data_hora_inicio
     ''');
 
@@ -130,5 +129,43 @@ class DatabaseService {
       return Atendimento.fromMap(map);
     }).toList();
   }
+
+  Future<int> atualizarCliente(Cliente cliente) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'clientes',
+      cliente.toMap(),
+      where: 'id = ?',
+      whereArgs: [cliente.id],
+    );
+  }
+/*
+  Future<List<Atendimento>> listarAtendimentosRealizados() async {
+    final db = await _dbHelper.database;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT 
+        a.id, 
+        a.cliente_id, 
+        a.agenda_id, 
+        a.data_hora_inicio, 
+        a.compareceu, 
+        a.pagou, 
+        a.valor_pago, 
+        a.data_hora_fim, 
+        a.descricao, 
+        a.realizado,
+        c.nome AS nome_cliente
+      FROM atendimentos a
+      INNER JOIN clientes c ON a.cliente_id = c.id
+      WHERE a.realizado = 1
+      ORDER BY a.data_hora_inicio DESC
+    ''');
+
+    return List.generate(maps.length, (i) {
+      return Atendimento.fromMap(maps[i]);
+    });
+  }
+*/
 
 }
