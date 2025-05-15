@@ -4,11 +4,7 @@ import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/models/cliente.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../models/cliente.dart';
-import '../models/agenda.dart';
-import '../models/atendimento.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class AtendimentoAdicionar extends StatefulWidget {
   const AtendimentoAdicionar({Key? key}) : super(key: key);
@@ -307,49 +303,50 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
           child: ListView(
             children: [
               // Campo Cliente
-              CompositedTransformTarget(
-                link: _layerLink,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _clienteController,
-                        focusNode: _clienteFocusNode,
-                        decoration: const InputDecoration(labelText: 'Cliente'),
-                        onChanged: _filtrarClientes,
-                        validator: (value) =>
-                            _clienteSelecionado == null ? 'Selecione um cliente' : null,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_drop_down),
-                      onPressed: _abrirListaClientes,
-                    ),
-                  ],
+              DropdownSearch<Cliente>(
+                items: _clientes,
+                itemAsString: (Cliente c) => c.nome,
+                selectedItem: _clienteSelecionado,
+                dropdownDecoratorProps: const DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: "Cliente",
+                  ),
                 ),
+                onChanged: (Cliente? cliente) {
+                  setState(() {
+                    _clienteSelecionado = cliente;
+                    _clienteController.text = cliente?.nome ?? '';
+                  });
+                  _carregarAgendas();
+                },
+                enabled: _clientes.isNotEmpty,
+                popupProps: const PopupProps.menu(
+                  showSearchBox: true,
+                ),
+                validator: (value) => value == null ? 'Selecione um cliente' : null,
               ),
               const SizedBox(height: 16),
 
               // Campo Agenda
-              CompositedTransformTarget(
-                link: _layerLinkAgenda,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _agendaController,
-                        focusNode: _agendaFocusNode,
-                        decoration: const InputDecoration(labelText: 'Agenda'),
-                        onChanged: _filtrarAgendas,
-                        validator: (value) =>
-                            _agendaSelecionada == null ? 'Selecione uma agenda' : null,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_drop_down),
-                      onPressed: _abrirListaAgendas,
-                    ),
-                  ],
+              DropdownSearch<Agenda>(
+                items: _agendasFiltradas,
+                itemAsString: (Agenda a) => '${a.nomeCliente ?? ''} - ${a.dataHora}',
+                selectedItem: _agendaSelecionada,
+                dropdownDecoratorProps: const DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: "Agenda",
+                  ),
+                ),
+                onChanged: (Agenda? agenda) {
+                  setState(() {
+                    _agendaSelecionada = agenda;
+                    _agendaController.text = '${agenda?.nomeCliente ?? ''} - '
+                        '${agenda != null ? DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora) : ''}';
+                  });
+                },
+                enabled: _agendasFiltradas.isNotEmpty,
+                popupProps: const PopupProps.menu(
+                  showSearchBox: true,
                 ),
               ),
               const SizedBox(height: 16),
