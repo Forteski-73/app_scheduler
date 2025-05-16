@@ -18,10 +18,13 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   cupertino_icons: ^1.0.8
   path: ^1.9.1
-  flutter_multi_formatter: ^2.10.0
   mask_text_input_formatter: ^2.7.0
+  flutter_masked_text2: ^0.9.1
   dropdown_search: ^5.0.6
   http: ^0.13.6
+
+  webview_flutter: ^4.7.0
+  table_calendar: ^3.0.9
 
 dev_dependencies:
   flutter_test:

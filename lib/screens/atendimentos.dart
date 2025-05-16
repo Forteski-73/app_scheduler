@@ -148,10 +148,32 @@ class _AtendimentosState extends State<Atendimentos> {
                         },
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            // Aqui você pode implementar a exclusão
+                          onPressed: () async {
+                            final confirmado = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Confirmar exclusão'),
+                                content: Text('Deseja realmente excluir o atendimento de "${atendimento.nomeCliente}" iniciado em ${DateFormat('dd/MM/yyyy HH:mm').format(atendimento.dataHoraInicio)}?'),
+                                actions: [
+                                  TextButton(
+                                    child: const Text('Cancelar'),
+                                    onPressed: () => Navigator.pop(context, false),
+                                  ),
+                                  TextButton(
+                                    child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                                    onPressed: () => Navigator.pop(context, true),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirmado == true) {
+                              await _dbService.deletarAtendimento(atendimento.id!);
+                              await _carregarAtendimentos(); // atualiza a lista após exclusão
+                            }
                           },
                         ),
+
                       );
                     },
                   ),

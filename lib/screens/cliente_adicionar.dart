@@ -6,6 +6,7 @@ import 'package:oxf_client/models/cliente.dart';
 import 'package:oxf_client/models/municipio.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 
 class ClienteAdicionar extends StatefulWidget {
   @override
@@ -16,7 +17,11 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
   final TextEditingController nomeController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController telefoneController = TextEditingController();
-  final TextEditingController precoAtendimentoController = TextEditingController();
+  final precoAtendimentoController = MoneyMaskedTextController (
+    decimalSeparator: ',',
+    thousandSeparator: '.',
+    initialValue: 0.0,
+  );
   final TextEditingController _cidadeManualController = TextEditingController();
   final DatabaseService _dbService = DatabaseService();
 
@@ -35,6 +40,13 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
     mask: '(##) ##### ####',
     filter: { "#": RegExp(r'[0-9]') },
   );
+
+
+  @override
+  void initState() {
+    super.initState();
+    precoAtendimentoController.text = '0,00';
+  }
 
   Future<void> carregarMunicipios(String uf) async {
     final url = Uri.parse('https://brasilapi.com.br/api/ibge/municipios/v1/$uf');
@@ -158,16 +170,16 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_up),
                         onPressed: () {
-                          final valorAtual = double.tryParse(precoAtendimentoController.text) ?? 0.0;
-                          precoAtendimentoController.text = (valorAtual + 1).toStringAsFixed(2);
+                          precoAtendimentoController.updateValue(
+                            precoAtendimentoController.numberValue + 1,
+                          );
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_down),
                         onPressed: () {
-                          final valorAtual = double.tryParse(precoAtendimentoController.text) ?? 0.0;
-                          final novoValor = (valorAtual - 1).clamp(0.0, double.infinity);
-                          precoAtendimentoController.text = novoValor.toStringAsFixed(2);
+                          final novoValor = (precoAtendimentoController.numberValue - 1).clamp(0.0, double.infinity);
+                          precoAtendimentoController.updateValue(novoValor);
                         },
                       ),
                     ],

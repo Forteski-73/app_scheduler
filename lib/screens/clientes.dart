@@ -126,8 +126,29 @@ class _ClientesState extends State<Clientes> {
                         },
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            // Excluir cliente
+                          onPressed: () async {
+                            final confirmado = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Confirmar exclusão'),
+                                content: Text('Deseja realmente excluir o cliente "${cliente.nome}"?'),
+                                actions: [
+                                  TextButton(
+                                    child: const Text('Cancelar'),
+                                    onPressed: () => Navigator.pop(context, false),
+                                  ),
+                                  TextButton(
+                                    child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                                    onPressed: () => Navigator.pop(context, true),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirmado == true) {
+                              await _dbService.deletarCliente(cliente.id!);
+                              await _carregarClientes(); // atualiza a lista
+                            }
                           },
                         ),
                       );

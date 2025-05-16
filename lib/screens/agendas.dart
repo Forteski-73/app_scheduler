@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/services/db_service.dart';
+import 'package:oxf_client/screens/calendario.dart';
 
 class Agendas extends StatefulWidget {
   const Agendas({Key? key}) : super(key: key);
@@ -139,7 +140,27 @@ class _AgendasState extends State<Agendas> {
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () async {
-                            await _excluirAgenda(agenda.id!);
+                            final confirmado = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Confirmar exclusão'),
+                                content: Text('Deseja realmente excluir a agenda "${agenda.nomeCliente} ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}" ?'),
+                                actions: [
+                                  TextButton(
+                                    child: const Text('Cancelar'),
+                                    onPressed: () => Navigator.pop(context, false),
+                                  ),
+                                  TextButton(
+                                    child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+                                    onPressed: () => Navigator.pop(context, true),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirmado == true) {
+                              await _excluirAgenda(agenda.id!);
+                            }
                           },
                         ),
                       );
@@ -148,13 +169,31 @@ class _AgendasState extends State<Agendas> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/agenda_adicionar');
-          _carregarAgendas();
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "calendario",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Calendario()),
+              );
+            },
+            child: const Icon(Icons.calendar_month),
+          ),
+          const SizedBox(width: 10),
+          FloatingActionButton(
+            heroTag: "adicionar",
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/agenda_adicionar');
+              _carregarAgendas();
+            },
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
+
     );
   }
 }

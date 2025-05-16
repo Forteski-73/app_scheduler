@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/cliente.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 
 class ClienteEditar extends StatefulWidget {
   final Cliente cliente;
@@ -19,7 +20,7 @@ class _ClienteEditarState extends State<ClienteEditar> {
   late TextEditingController telefoneController;
   late TextEditingController cidadeController;
   late TextEditingController ufController;
-  late TextEditingController precoController;
+  late MoneyMaskedTextController precoController;
 
   final List<String> estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
@@ -42,7 +43,11 @@ class _ClienteEditarState extends State<ClienteEditar> {
     telefoneController = TextEditingController(text: widget.cliente.telefone);
     cidadeController = TextEditingController(text: widget.cliente.cidade);
     ufController = TextEditingController(text: widget.cliente.uf);
-    precoController = TextEditingController(text: widget.cliente.precoAtendimento.toString());
+    precoController = MoneyMaskedTextController (
+      decimalSeparator: ',',
+      thousandSeparator: '.',
+      initialValue: 0.0,
+    );
     ufController = TextEditingController(text: widget.cliente.uf);
     ufSelecionada = (widget.cliente.uf != null && widget.cliente.uf!.isNotEmpty)
         ? widget.cliente.uf!.toUpperCase()
@@ -151,9 +156,7 @@ class _ClienteEditarState extends State<ClienteEditar> {
                     child: TextFormField(
                       controller: precoController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: "Preço do Atendimento",
-                      ),
+                      decoration: const InputDecoration(labelText: "Preço do Atendimento"),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -162,16 +165,16 @@ class _ClienteEditarState extends State<ClienteEditar> {
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_up),
                         onPressed: () {
-                          final valorAtual = double.tryParse(precoController.text) ?? 0.0;
-                          precoController.text = (valorAtual + 1).toStringAsFixed(2);
+                          precoController.updateValue(
+                            precoController.numberValue + 1,
+                          );
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_down),
                         onPressed: () {
-                          final valorAtual = double.tryParse(precoController.text) ?? 0.0;
-                          final novoValor = (valorAtual - 1).clamp(0.0, double.infinity);
-                          precoController.text = novoValor.toStringAsFixed(2);
+                          final novoValor = (precoController.numberValue - 1).clamp(0.0, double.infinity);
+                          precoController.updateValue(novoValor);
                         },
                       ),
                     ],

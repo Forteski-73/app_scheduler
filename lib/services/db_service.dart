@@ -102,7 +102,12 @@ class DatabaseService {
     );
   }
 
-    // Listar apenas atendimentos realizados
+  Future<void> deletarAtendimento(int id) async {
+    final db = await _dbHelper.database;
+    await db.delete('atendimentos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Listar apenas atendimentos realizados
   Future<List<Atendimento>> listarAtendimentosRealizados() async {
     final db = await _dbHelper.database;
 
@@ -139,6 +144,12 @@ class DatabaseService {
       whereArgs: [cliente.id],
     );
   }
+
+  Future<int> deletarCliente(int id) async {
+    final db = await _dbHelper.database;
+    return await db.delete('clientes', where: 'id = ?', whereArgs: [id]);
+  }
+
 /*
   Future<List<Atendimento>> listarAtendimentosRealizados() async {
     final db = await _dbHelper.database;

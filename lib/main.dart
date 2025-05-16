@@ -10,6 +10,7 @@ import 'package:oxf_client/screens/agenda_adicionar.dart';
 import 'package:oxf_client/screens/agenda_editar.dart';
 import 'package:oxf_client/screens/atendimento_editar.dart';
 import 'package:oxf_client/screens/atendimento_adicionar.dart';
+import 'package:oxf_client/screens/calendario.dart';
 
 // Models
 import 'package:oxf_client/models/cliente.dart';
@@ -85,7 +86,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/cliente_adicionar': (context) => ClienteAdicionar(),
         '/agenda_adicionar': (context) => AgendaAdicionar(),
-        '/atendimento_adicionar': (context) => AtendimentoAdicionar(), // <-- ROTA ADICIONADA
+        '/atendimento_adicionar': (context) => AtendimentoAdicionar(),
+        '/calendario': (context) => const Calendario(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/cliente_editar') {

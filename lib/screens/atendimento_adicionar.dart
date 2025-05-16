@@ -5,6 +5,7 @@ import 'package:oxf_client/models/cliente.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:intl/intl.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 
 class AtendimentoAdicionar extends StatefulWidget {
   const AtendimentoAdicionar({Key? key}) : super(key: key);
@@ -24,7 +25,7 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
   late TextEditingController _clienteController;
   late TextEditingController _agendaController;
   late TextEditingController _descricaoController;
-  late TextEditingController _valorPagoController;
+  late MoneyMaskedTextController _valorPagoController;
 
   List<Cliente> _clientes = [];
   List<Cliente> _clientesFiltrados = [];
@@ -47,7 +48,11 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
     _clienteController = TextEditingController();
     _agendaController = TextEditingController();
     _descricaoController = TextEditingController();
-    _valorPagoController = TextEditingController();
+    _valorPagoController = MoneyMaskedTextController (
+      decimalSeparator: ',',
+      thousandSeparator: '.',
+      initialValue: 0.0,
+    );
     _carregarClientes();
 
     _clienteFocusNode.addListener(() {
@@ -359,13 +364,38 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
-                controller: _valorPagoController,
-                decoration:
-                    const InputDecoration(labelText: 'Valor Pago (opcional)'),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _valorPagoController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Valor Pago'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_drop_up),
+                        onPressed: () {
+                          _valorPagoController.updateValue(
+                            _valorPagoController.numberValue + 1,
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_drop_down),
+                        onPressed: () {
+                          final novoValor = (_valorPagoController.numberValue - 1).clamp(0.0, double.infinity);
+                          _valorPagoController.updateValue(novoValor);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
+
               const SizedBox(height: 16),
 
               SwitchListTile(
