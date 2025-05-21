@@ -18,7 +18,7 @@ class DatabaseCreate {
     final path = join(await getDatabasesPath(), 'oxf_client.db');
     return await openDatabase(
       path,
-      version: 1,  // Atualize a versão aqui caso seja necessário
+      version: 1,  // Atualizar a versão aqui caso necessário
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -43,7 +43,7 @@ class DatabaseCreate {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cliente_id INTEGER NOT NULL,
         data_hora TEXT NOT NULL,
-        observacoes TEXT,
+        observacao TEXT,
         FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       )
     ''');
@@ -62,6 +62,32 @@ class DatabaseCreate {
         realizado INTEGER NOT NULL,
         FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE,
         FOREIGN KEY (agenda_id) REFERENCES agenda(id) ON DELETE CASCADE ON UPDATE CASCADE  -- Chave estrangeira para 'agenda'
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE pagamento (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL,
+        atendimento_id INTEGER NOT NULL,
+        valor_cobrado REAL,
+        valor_pago REAL,
+        tipo_pgto TEXT CHECK (tipo_pgto IN ('Pix', 'Dinheiro', 'Cartão', 'Crédito Antecipado')),
+        data TEXT,
+        hora TEXT,
+        observacao TEXT,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (atendimento_id) REFERENCES atendimentos(id) ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE saldo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL,
+        saldo REAL NOT NULL DEFAULT 0.0,
+        observacao TEXT,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       )
     ''');
   }

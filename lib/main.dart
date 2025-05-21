@@ -11,6 +11,7 @@ import 'package:oxf_client/screens/agenda_editar.dart';
 import 'package:oxf_client/screens/atendimento_editar.dart';
 import 'package:oxf_client/screens/atendimento_adicionar.dart';
 import 'package:oxf_client/screens/calendario.dart';
+import 'package:oxf_client/screens/pagamento.dart';
 
 // Models
 import 'package:oxf_client/models/cliente.dart';
@@ -85,9 +86,17 @@ class MyApp extends StatelessWidget {
       home: const Home(),
       routes: {
         '/cliente_adicionar': (context) => ClienteAdicionar(),
-        '/agenda_adicionar': (context) => AgendaAdicionar(),
+        '/agenda_adicionar': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as DateTime?;
+          return AgendaAdicionar(dataSelecionada: args);
+        },
+        '/agendas_filtrado': (context) {
+          final selectedDate = ModalRoute.of(context)!.settings.arguments as DateTime;
+          return Agendas(diaSelecionado: selectedDate);
+        },
         '/atendimento_adicionar': (context) => AtendimentoAdicionar(),
         '/calendario': (context) => const Calendario(),
+        '/pagamento': (context) => const Pagamentos(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/cliente_editar') {
@@ -190,6 +199,20 @@ class Home extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => Atendimentos()),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.monetization_on_rounded, color: Colors.white, size: 28),
+                label: const Text(
+                  'Pagamentos',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Pagamentos()),
                   );
                 },
               ),

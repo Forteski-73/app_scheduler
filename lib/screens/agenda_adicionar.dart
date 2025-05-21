@@ -6,7 +6,9 @@ import 'package:oxf_client/services/db_service.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 
 class AgendaAdicionar extends StatefulWidget {
-  const AgendaAdicionar({super.key});
+  final DateTime? dataSelecionada;
+
+  const AgendaAdicionar({super.key, this.dataSelecionada});
 
   @override
   State<AgendaAdicionar> createState() => _AgendaAdicionarState();
@@ -34,7 +36,12 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
     super.initState();
     _carregarClientes();
 
-    // Atualizar lista quando campo cliente ganhar foco
+    // Preenche a data se foi passada
+    final data = widget.dataSelecionada;
+    if (data != null) {
+      _dataController.text = DateFormat('dd/MM/yyyy').format(data);
+    }
+
     _clienteFocusNode.addListener(() {
       if (_clienteFocusNode.hasFocus) {
         _filtrarClientes(_clienteController.text);

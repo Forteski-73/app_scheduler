@@ -5,7 +5,9 @@ import 'package:oxf_client/services/db_service.dart';
 import 'package:oxf_client/screens/calendario.dart';
 
 class Agendas extends StatefulWidget {
-  const Agendas({Key? key}) : super(key: key);
+  final DateTime? diaSelecionado;
+
+  const Agendas({Key? key, this.diaSelecionado}) : super(key: key);
 
   @override
   State<Agendas> createState() => _AgendasState();
@@ -21,19 +23,41 @@ class _AgendasState extends State<Agendas> {
   @override
   void initState() {
     super.initState();
-    _carregarAgendas();
 
     _searchController.addListener(() {
       _filtrarAgendas(_searchController.text);
+    });
+
+    _carregarAgendas().then((_) {
+      if (widget.diaSelecionado != null) {
+        final dataFormatada = DateFormat('dd/MM/yyyy').format(widget.diaSelecionado!);
+        _searchController.text = dataFormatada;
+        _filtrarAgendas(dataFormatada);
+      }
     });
   }
 
   Future<void> _carregarAgendas() async {
     final agendas = await _dbService.listarAgendas();
-    setState(() {
-      _todasAgendas = agendas;
-      _agendas = agendas;
-    });
+
+    if (widget.diaSelecionado != null) {
+      final dia = DateTime(widget.diaSelecionado!.year, widget.diaSelecionado!.month, widget.diaSelecionado!.day);
+
+      final filtradas = agendas.where((agenda) {
+        final dataAgenda = DateTime(agenda.dataHora.year, agenda.dataHora.month, agenda.dataHora.day);
+        return dataAgenda == dia;
+      }).toList();
+
+      setState(() {
+        _todasAgendas = filtradas;
+        _agendas = filtradas;
+      });
+    } else {
+      setState(() {
+        _todasAgendas = agendas;
+        _agendas = agendas;
+      });
+    }
   }
 
   void _filtrarAgendas(String query) {
@@ -186,7 +210,11 @@ class _AgendasState extends State<Agendas> {
           FloatingActionButton(
             heroTag: "adicionar",
             onPressed: () async {
-              await Navigator.pushNamed(context, '/agenda_adicionar');
+              await Navigator.pushNamed(
+                context,
+                '/agenda_adicionar',
+                arguments: widget.diaSelecionado,
+              );
               _carregarAgendas();
             },
             child: const Icon(Icons.add),

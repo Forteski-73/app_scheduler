@@ -28,7 +28,7 @@ class Cliente {
       telefone: map['telefone'],
       cidade: map['cidade'],
       uf: map['uf'],
-      precoAtendimento: map['preco_atendimento']?.toDouble(),
+      precoAtendimento: (map['preco_atendimento'] as num?)?.toDouble(),
       dataCadastro: map['data_cadastro'] != null
           ? DateTime.parse(map['data_cadastro'])
           : null,

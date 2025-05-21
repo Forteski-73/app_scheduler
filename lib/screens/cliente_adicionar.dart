@@ -191,15 +191,20 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
+                    String precoTexto = "";
+                    if(precoAtendimentoController.text.isNotEmpty)
+                    {
+                      precoTexto = precoAtendimentoController.text.trim();
+                      precoTexto = precoTexto.replaceAll('.', '').replaceAll(',', '.');
+                    }
+                    double precoAtendimento = double.tryParse(precoTexto) ?? 0.0;
                     final cliente = Cliente(
                       nome: nomeController.text,
                       email: emailController.text,
                       telefone: telefoneController.text,
                       cidade: _cidadeSelecionada?.nome ?? _cidadeManual,
                       uf: _ufSelecionado,
-                      precoAtendimento: precoAtendimentoController.text.isNotEmpty
-                          ? double.tryParse(precoAtendimentoController.text)
-                          : null,
+                      precoAtendimento: precoAtendimento,
                       dataCadastro: DateTime.now(),
                     );
                     await _dbService.inserirCliente(cliente);

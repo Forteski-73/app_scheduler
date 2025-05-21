@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:intl/intl.dart';
+import 'package:oxf_client/screens/atendimento_adicionar.dart';
 
 class Calendario extends StatefulWidget {
   const Calendario({super.key});
@@ -65,6 +66,20 @@ class _CalendarioState extends State<Calendario> {
                 _diaSelecionado = selectedDay;
                 _agendasDoDia = _obterEventos(selectedDay);
               });
+
+              if (_agendasDoDia.isEmpty) {
+                Navigator.pushNamed(
+                  context,
+                  '/agenda_adicionar',
+                  arguments: selectedDay,
+                );
+              } else {
+                Navigator.pushNamed(
+                  context,
+                  '/agendas_filtrado',
+                  arguments: selectedDay,
+                );
+              }
             },
             calendarStyle: const CalendarStyle(
               todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),

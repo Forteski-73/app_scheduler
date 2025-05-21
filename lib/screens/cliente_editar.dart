@@ -67,6 +67,12 @@ class _ClienteEditarState extends State<ClienteEditar> {
 
   void salvar() async {
     if (_formKey.currentState!.validate()) {
+
+      String precoTexto = precoController.text.trim();
+      precoTexto = precoTexto.replaceAll('.', '').replaceAll(',', '.');
+
+      double preco = double.tryParse(precoTexto) ?? 0.0;
+
       final clienteEditado = Cliente(
         id: widget.cliente.id,
         nome: nomeController.text,
@@ -74,7 +80,7 @@ class _ClienteEditarState extends State<ClienteEditar> {
         telefone: telefoneController.text,
         cidade: cidadeController.text,
         uf: ufController.text,
-        precoAtendimento: double.tryParse(precoController.text) ?? 0.0,
+        precoAtendimento: preco,
         dataCadastro: widget.cliente.dataCadastro,
       );
 
