@@ -3,7 +3,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/services/db_service.dart';
 import 'package:intl/intl.dart';
-import 'package:oxf_client/screens/atendimento_adicionar.dart';
 
 class Calendario extends StatefulWidget {
   const Calendario({super.key});
@@ -17,6 +16,7 @@ class _CalendarioState extends State<Calendario> {
   Map<DateTime, List<Agenda>> _eventos = {};
   DateTime _diaSelecionado = DateTime.now();
   List<Agenda> _agendasDoDia = [];
+  Key _calendarKey = UniqueKey(); // Adicionado para forçar rebuild
 
   @override
   void initState() {
@@ -36,7 +36,8 @@ class _CalendarioState extends State<Calendario> {
 
     setState(() {
       _eventos = eventos;
-      _agendasDoDia = _eventos[_diaSelecionado] ?? [];
+      _calendarKey = UniqueKey(); // Força rebuild do calendário
+      _agendasDoDia = _obterEventos(_diaSelecionado);
     });
   }
 
@@ -56,34 +57,48 @@ class _CalendarioState extends State<Calendario> {
       body: Column(
         children: [
           TableCalendar<Agenda>(
+            locale: 'pt_BR',
+            key: _calendarKey, // chave dinâmica para forçar rebuild
             firstDay: DateTime(2000),
             lastDay: DateTime(2100),
             focusedDay: _diaSelecionado,
             eventLoader: _obterEventos,
             selectedDayPredicate: (day) => isSameDay(day, _diaSelecionado),
-            onDaySelected: (selectedDay, focusedDay) {
+            onDaySelected: (selectedDay, focusedDay) async {
               setState(() {
                 _diaSelecionado = selectedDay;
                 _agendasDoDia = _obterEventos(selectedDay);
               });
 
               if (_agendasDoDia.isEmpty) {
-                Navigator.pushNamed(
+                await Navigator.pushNamed(
                   context,
                   '/agenda_adicionar',
                   arguments: selectedDay,
                 );
               } else {
-                Navigator.pushNamed(
+                await Navigator.pushNamed(
                   context,
                   '/agendas_filtrado',
                   arguments: selectedDay,
                 );
               }
+
+              await _carregarEventos(); // recarrega e atualiza visualmente
             },
-            calendarStyle: const CalendarStyle(
-              todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-              selectedDecoration: BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: Colors.purple,
+                shape: BoxShape.circle,
+              ),
+              markerDecoration: BoxDecoration(
+                color: Colors.greenAccent, // cor da bolinha verde
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const SizedBox(height: 8),

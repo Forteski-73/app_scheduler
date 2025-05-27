@@ -127,7 +127,7 @@ class _AgendasState extends State<Agendas> {
               decoration: InputDecoration(
                 labelText: 'Pesquisar agenda',
                 prefixIcon: Icon(Icons.search, color: Colors.purple),
-                border: InputBorder.none, // Sem borda
+                border: InputBorder.none,
                 filled: true,
                 fillColor: Colors.grey[200],
                 focusedBorder: UnderlineInputBorder(
@@ -168,7 +168,7 @@ class _AgendasState extends State<Agendas> {
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text('Confirmar exclusão'),
-                                content: Text('Deseja realmente excluir a agenda "${agenda.nomeCliente} ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}" ?'),
+                                content: Text('Deseja realmente excluir a agenda "${agenda.nomeCliente} ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}"?'),
                                 actions: [
                                   TextButton(
                                     child: const Text('Cancelar'),
@@ -193,35 +193,51 @@ class _AgendasState extends State<Agendas> {
           ),
         ],
       ),
-      floatingActionButton: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: "calendario",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Calendario()),
-              );
-            },
-            child: const Icon(Icons.calendar_month),
-          ),
-          const SizedBox(width: 10),
-          FloatingActionButton(
-            heroTag: "adicionar",
-            onPressed: () async {
-              await Navigator.pushNamed(
-                context,
-                '/agenda_adicionar',
-                arguments: widget.diaSelecionado,
-              );
-              _carregarAgendas();
-            },
-            child: const Icon(Icons.add),
-          ),
-        ],
+      // botton
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/')); // ou sua rota principal
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "calendario",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Calendario()),
+                );
+              },
+              child: const Icon(Icons.calendar_month),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "adicionar",
+              backgroundColor: Colors.deepPurple,
+              onPressed: () async {
+                await Navigator.pushNamed(
+                  context,
+                  '/agenda_adicionar',
+                  arguments: widget.diaSelecionado,
+                );
+                _carregarAgendas();
+              },
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
       ),
-
     );
   }
 }

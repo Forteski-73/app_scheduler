@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:oxf_client/models/atendimento.dart';
 import 'package:oxf_client/models/agenda.dart';
 import 'package:oxf_client/models/cliente.dart';
 import 'package:oxf_client/services/db_service.dart';
-import 'package:intl/intl.dart';
-import 'package:dropdown_search/dropdown_search.dart';
-import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 
 class AtendimentoAdicionar extends StatefulWidget {
   const AtendimentoAdicionar({Key? key}) : super(key: key);
@@ -16,361 +16,244 @@ class AtendimentoAdicionar extends StatefulWidget {
 
 class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
   final _formKey = GlobalKey<FormState>();
-  final LayerLink _layerLink = LayerLink();
-  final LayerLink _layerLinkAgenda = LayerLink();
 
-  final FocusNode _clienteFocusNode = FocusNode();
-  final FocusNode _agendaFocusNode = FocusNode();
-
-  late TextEditingController _clienteController;
-  late TextEditingController _agendaController;
-  late TextEditingController _descricaoController;
-  late MoneyMaskedTextController _valorPagoController;
+  Cliente? _clienteSelecionado;
+  Agenda? _agendaSelecionada;
 
   List<Cliente> _clientes = [];
-  List<Cliente> _clientesFiltrados = [];
-  Cliente? _clienteSelecionado;
-
   List<Agenda> _agendas = [];
-  List<Agenda> _agendasFiltradas = [];
-  Agenda? _agendaSelecionada;
+
+  final _descricaoController = TextEditingController();
+  late MoneyMaskedTextController _valorPagoController;
 
   bool _realizado = false;
   bool _compareceu = false;
   bool _pagou = false;
 
-  OverlayEntry? _overlayEntry;
-  OverlayEntry? _overlayAgenda;
+  bool _botaoHabilitado = false;
+
+  DateTime _dataSelecionada = DateTime.now();
+  TimeOfDay _horaSelecionada = TimeOfDay.now();
 
   @override
   void initState() {
     super.initState();
-    _clienteController = TextEditingController();
-    _agendaController = TextEditingController();
-    _descricaoController = TextEditingController();
-    _valorPagoController = MoneyMaskedTextController (
+    _valorPagoController = MoneyMaskedTextController(
       decimalSeparator: ',',
       thousandSeparator: '.',
       initialValue: 0.0,
     );
     _carregarClientes();
-
-    _clienteFocusNode.addListener(() {
-      if (!_clienteFocusNode.hasFocus) _removeOverlay();
-    });
-
-    _agendaFocusNode.addListener(() {
-      if (!_agendaFocusNode.hasFocus) _removeAgendaOverlay();
-    });
   }
 
   Future<void> _carregarClientes() async {
     final clientes = await DatabaseService().listarClientes();
-    setState(() {
-      _clientes = clientes;
-      _clientesFiltrados = clientes;
-    });
+    setState(() => _clientes = clientes);
   }
 
   Future<void> _carregarAgendas() async {
-    if (_clienteSelecionado != null) {
-      final todasAgendas = await DatabaseService().listarAgendas();
-      final agendasFiltradas = todasAgendas
-          .where((agenda) => agenda.clienteId == _clienteSelecionado!.id)
-          .toList();
-
-      setState(() {
-        _agendas = agendasFiltradas;
-        _agendasFiltradas = agendasFiltradas;
-        _agendaSelecionada = null;
-        _agendaController.clear();
-      });
-    } else {
+    if (_clienteSelecionado == null) {
       setState(() {
         _agendas = [];
-        _agendasFiltradas = [];
         _agendaSelecionada = null;
-        _agendaController.clear();
       });
+      return;
     }
-  }
 
-  void _filtrarClientes(String query) {
+    final todasAgendas = await DatabaseService().listarAgendas();
+    final agendasCliente = todasAgendas
+        .where((a) => a.clienteId == _clienteSelecionado!.id)
+        .toList();
+
     setState(() {
-      _clientesFiltrados = _clientes
-          .where((c) => c.nome.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      _agendas = agendasCliente;
+      _agendaSelecionada = null;
     });
-    _mostrarOverlay();
   }
 
-  void _filtrarAgendas(String query) {
+  void _validarFormulario() {
     setState(() {
-      _agendasFiltradas = _agendas
-          .where((a) =>
-              (a.nomeCliente?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-              DateFormat('dd/MM/yyyy HH:mm').format(a.dataHora).contains(query))
-          .toList();
-          });
-    _mostrarAgendaOverlay();
+      _botaoHabilitado =
+          _clienteSelecionado != null && _agendaSelecionada != null;
+    });
   }
 
-  void _mostrarOverlay() {
-    _removeOverlay();
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-
-    final overlay = Overlay.of(context);
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width - 32,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          offset: const Offset(0, 56),
-          showWhenUnlinked: false,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _clientesFiltrados.length,
-              itemBuilder: (context, index) {
-                final cliente = _clientesFiltrados[index];
-                return ListTile(
-                  title: Text(cliente.nome),
-                  onTap: () {
-                    setState(() {
-                      _clienteSelecionado = cliente;
-                      _clienteController.text = cliente.nome;
-                      _clientesFiltrados = _clientes;
-                    });
-                    _carregarAgendas();
-                    _removeOverlay();
-                    FocusScope.of(context).unfocus();
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+  Future<void> _selecionarData(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dataSelecionada,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
     );
-    overlay.insert(_overlayEntry!);
-  }
 
-  void _mostrarAgendaOverlay() {
-    _removeAgendaOverlay();
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-
-    final overlay = Overlay.of(context);
-    _overlayAgenda = OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width - 32,
-        child: CompositedTransformFollower(
-          link: _layerLinkAgenda,
-          offset: const Offset(0, 56),
-          showWhenUnlinked: false,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _agendasFiltradas.length,
-              itemBuilder: (context, index) {
-                final agenda = _agendasFiltradas[index];
-                return ListTile(
-                  title: Text(
-                    '${agenda.nomeCliente} - ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}',
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _agendaSelecionada = agenda;
-                      _agendaController.text =
-                          '${agenda.nomeCliente} - ${DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora)}';
-                      _agendasFiltradas = _agendas;
-                    });
-                    _removeAgendaOverlay();
-                    FocusScope.of(context).unfocus();
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-    overlay.insert(_overlayAgenda!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  void _removeAgendaOverlay() {
-    _overlayAgenda?.remove();
-    _overlayAgenda = null;
-  }
-
-  void _abrirListaClientes() {
-    if (_overlayEntry != null) {
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      _clienteFocusNode.unfocus();
-    } else {
-      FocusScope.of(context).requestFocus(_clienteFocusNode);
-      _mostrarOverlay();
+    if (picked != null) {
+      setState(() => _dataSelecionada = picked);
     }
   }
 
-  void _abrirListaAgendas() {
-    if (_overlayAgenda != null) {
-      _overlayAgenda?.remove();
-      _overlayAgenda = null;
-      _agendaFocusNode.unfocus();
-    } else {
-      _agendaFocusNode.requestFocus();
-      _mostrarAgendaOverlay();
+  Future<void> _selecionarHora(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _horaSelecionada,
+    );
+
+    if (picked != null) {
+      setState(() => _horaSelecionada = picked);
     }
   }
 
   void _salvar() async {
-    if (_formKey.currentState!.validate()) {
-      if (_clienteSelecionado == null || _agendaSelecionada == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selecione um cliente e uma agenda')),
-        );
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
 
-      final novoAtendimento = Atendimento(
+    if (_clienteSelecionado == null || _agendaSelecionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione cliente e agenda')),
+      );
+      return;
+    }
+
+    final valorPago = _valorPagoController.numberValue;
+
+    final dataHoraInicio = DateTime(
+      _dataSelecionada.year,
+      _dataSelecionada.month,
+      _dataSelecionada.day,
+      _horaSelecionada.hour,
+      _horaSelecionada.minute,
+    );
+
+    final atendimento = Atendimento(
+      clienteId: _clienteSelecionado!.id!,
+      agendaId: _agendaSelecionada!.id!,
+      dataHoraInicio: dataHoraInicio,
+      compareceu: _compareceu,
+      pagou: _pagou,
+      valorPago: valorPago,
+      dataHoraFim: null,
+      descricao: _descricaoController.text,
+      realizado: _realizado,
+      nomeCliente: _clienteSelecionado!.nome,
+    );
+
+    final id = await DatabaseService().inserirAtendimento(atendimento);
+
+    if (id > 0) {
+      await DatabaseService().inserirPagamento(
         clienteId: _clienteSelecionado!.id!,
-        agendaId: _agendaSelecionada!.id!,
-        dataHoraInicio: DateTime.now(),
-        compareceu: _compareceu,
-        pagou: _pagou,
-        valorPago: double.tryParse(_valorPagoController.text) ?? 0.0,
-        dataHoraFim: null,
-        descricao: _descricaoController.text,
-        realizado: _realizado,
-        nomeCliente: _clienteSelecionado!.nome,
+        atendimentoId: id,
+        valorCobrado: valorPago,
+        valorPago: valorPago,
+        tipoPgto: 'Dinheiro',
+        data: DateFormat('yyyy-MM-dd').format(dataHoraInicio),
+        hora: DateFormat('HH:mm').format(dataHoraInicio),
+        observacao: '',
       );
 
-      final id = await DatabaseService().inserirAtendimento(novoAtendimento);
-
-      if (id > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Atendimento salvo com sucesso')),
-        );
-        Navigator.pop(context, novoAtendimento);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao salvar atendimento')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Atendimento salvo com sucesso')),
+      );
+      Navigator.pop(context, atendimento);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar atendimento')),
+      );
     }
-  }
-
-  @override
-  void dispose() {
-    _clienteController.dispose();
-    _agendaController.dispose();
-    _descricaoController.dispose();
-    _valorPagoController.dispose();
-    _clienteFocusNode.dispose();
-    _agendaFocusNode.dispose();
-    _removeOverlay();
-    _removeAgendaOverlay();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text("Adicionar Atendimento", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Adicionar Atendimento",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const CircleAvatar(
+          icon: CircleAvatar(
             backgroundColor: Colors.white,
-            child: Icon(Icons.arrow_back, color: Colors.purple),
+            child: Icon(
+              Icons.arrow_back,
+              color: Colors.purple,
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              // Campo Cliente
               DropdownSearch<Cliente>(
                 items: _clientes,
-                itemAsString: (Cliente c) => c.nome,
                 selectedItem: _clienteSelecionado,
+                itemAsString: (c) => c.nome,
                 dropdownDecoratorProps: const DropDownDecoratorProps(
-                  dropdownSearchDecoration: InputDecoration(
-                    labelText: "Cliente",
-                  ),
-                ),
-                onChanged: (Cliente? cliente) {
+                    dropdownSearchDecoration: InputDecoration(
+                  labelText: 'Cliente',
+                )),
+                onChanged: (c) {
                   setState(() {
-                    _clienteSelecionado = cliente;
-                    _clienteController.text = cliente?.nome ?? '';
+                    _clienteSelecionado = c;
+                    _agendaSelecionada = null;
+                    _agendas = [];
                   });
                   _carregarAgendas();
+                  _validarFormulario();
                 },
-                enabled: _clientes.isNotEmpty,
-                popupProps: const PopupProps.menu(
-                  showSearchBox: true,
-                ),
-                validator: (value) => value == null ? 'Selecione um cliente' : null,
+                validator: (c) => c == null ? 'Selecione um cliente' : null,
+                popupProps: const PopupProps.menu(showSearchBox: true),
               ),
               const SizedBox(height: 16),
-
-              // Campo Agenda
               DropdownSearch<Agenda>(
-                items: _agendasFiltradas,
-                itemAsString: (Agenda a) => '${a.nomeCliente ?? ''} - ${a.dataHora}',
+                items: _agendas,
                 selectedItem: _agendaSelecionada,
+                itemAsString: (a) =>
+                    '${a.nomeCliente} - ${DateFormat('dd/MM/yyyy HH:mm').format(a.dataHora)}',
                 dropdownDecoratorProps: const DropDownDecoratorProps(
-                  dropdownSearchDecoration: InputDecoration(
-                    labelText: "Agenda",
-                  ),
-                ),
-                onChanged: (Agenda? agenda) {
+                    dropdownSearchDecoration: InputDecoration(
+                  labelText: 'Agenda',
+                )),
+                onChanged: (a) {
                   setState(() {
-                    _agendaSelecionada = agenda;
-                    _agendaController.text = '${agenda?.nomeCliente ?? ''} - '
-                        '${agenda != null ? DateFormat('dd/MM/yyyy HH:mm').format(agenda.dataHora) : ''}';
+                    _agendaSelecionada = a;
                   });
+                  _validarFormulario();
                 },
-                enabled: _agendasFiltradas.isNotEmpty,
-                popupProps: const PopupProps.menu(
-                  showSearchBox: true,
-                ),
+                validator: (a) => a == null ? 'Selecione uma agenda' : null,
+                popupProps: const PopupProps.menu(showSearchBox: true),
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _descricaoController,
                 decoration: const InputDecoration(labelText: 'Descrição'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Informe a descrição' : null,
               ),
               const SizedBox(height: 16),
 
+              // Campo Valor Pago com incremento/decremento
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _valorPagoController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(labelText: 'Valor Pago'),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'Informe o valor pago';
+                        }
+                        // Opcional: validar valor numérico > 0
+                        if (_valorPagoController.numberValue < 0) {
+                          return 'Valor pago não pode ser negativo';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -379,16 +262,21 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_up),
                         onPressed: () {
-                          _valorPagoController.updateValue(
-                            _valorPagoController.numberValue + 1,
-                          );
+                          setState(() {
+                            _valorPagoController.updateValue(
+                              _valorPagoController.numberValue + 1,
+                            );
+                          });
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.arrow_drop_down),
                         onPressed: () {
-                          final novoValor = (_valorPagoController.numberValue - 1).clamp(0.0, double.infinity);
-                          _valorPagoController.updateValue(novoValor);
+                          setState(() {
+                            final novoValor = (_valorPagoController.numberValue - 1)
+                                .clamp(0.0, double.infinity);
+                            _valorPagoController.updateValue(novoValor);
+                          });
                         },
                       ),
                     ],
@@ -398,31 +286,87 @@ class _AtendimentoAdicionarState extends State<AtendimentoAdicionar> {
 
               const SizedBox(height: 16),
 
+              // Linha com Data Início e Hora Início lado a lado
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selecionarData(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Data Início',
+                            suffixIcon: Icon(Icons.calendar_today, color: Colors.purple,),
+                          ),
+                          controller: TextEditingController(
+                            text: DateFormat('dd/MM/yyyy').format(_dataSelecionada),
+                          ),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Selecione a data' : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selecionarHora(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Hora Início',
+                            suffixIcon: Icon(Icons.access_time, color: Colors.purple,),
+                          ),
+                          controller: TextEditingController(
+                            text: _horaSelecionada.format(context),
+                          ),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? 'Selecione a hora' : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
               SwitchListTile(
                 title: const Text('Realizado'),
                 value: _realizado,
-                onChanged: (val) => setState(() => _realizado = val),
+                onChanged: (v) => setState(() => _realizado = v),
               ),
               SwitchListTile(
                 title: const Text('Compareceu'),
                 value: _compareceu,
-                onChanged: (val) => setState(() => _compareceu = val),
+                onChanged: (v) => setState(() => _compareceu = v),
               ),
               SwitchListTile(
                 title: const Text('Pagou'),
                 value: _pagou,
-                onChanged: (val) => setState(() => _pagou = val),
-              ),
-
-              const SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: _salvar,
-                child: const Text('Salvar'),
+                onChanged: (v) => setState(() => _pagou = v),
               ),
             ],
           ),
         ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FloatingActionButton(
+            heroTag: 'home',
+            backgroundColor: Colors.purple,
+            onPressed: () => Navigator.popUntil(context, ModalRoute.withName('/')),
+            child: const Icon(Icons.home),
+          ),
+          const SizedBox(width: 16),
+          FloatingActionButton(
+            heroTag: 'salvar',
+            backgroundColor: _botaoHabilitado ? Colors.deepPurple : Colors.grey,
+            onPressed: _botaoHabilitado ? _salvar : null,
+            child: const Icon(Icons.done),
+          ),
+        ],
       ),
     );
   }

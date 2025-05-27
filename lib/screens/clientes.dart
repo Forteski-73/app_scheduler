@@ -157,13 +157,35 @@ class _ClientesState extends State<Clientes> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final resultado = await Navigator.pushNamed(context, '/cliente_adicionar');
-          await _carregarClientes();
-        },
-        child: const Icon(Icons.add),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/'));
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "adicionar_cliente",
+              backgroundColor: Colors.deepPurple,
+              onPressed: () async {
+                final resultado = await Navigator.pushNamed(context, '/cliente_adicionar');
+                await _carregarClientes();
+              },
+              child: const Icon(Icons.person_add), // Ícone específico para adicionar cliente
+            ),
+          ],
+        ),
       ),
+
     );
   }
 }

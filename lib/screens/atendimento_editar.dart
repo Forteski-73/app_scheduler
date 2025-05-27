@@ -324,14 +324,39 @@ class _AtendimentoEditarState extends State<AtendimentoEditar> {
                 value: _pagou,
                 onChanged: (val) => setState(() => _pagou = val),
               ),
-
+              /*
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _salvar,
                 child: const Text('Salvar'),
-              ),
+              ),*/
             ],
           ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/'));
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "salvar",
+              backgroundColor: Colors.deepPurple,
+              onPressed: _salvar,
+              child: const Icon(Icons.done),
+            ),
+          ],
         ),
       ),
     );

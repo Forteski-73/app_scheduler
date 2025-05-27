@@ -21,42 +21,30 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
   final _observacoesController = TextEditingController();
   final DatabaseService _dbService = DatabaseService();
 
-  // Novos campos para cliente com pesquisa
-  final LayerLink _layerLink = LayerLink();
-  final FocusNode _clienteFocusNode = FocusNode();
-  final TextEditingController _clienteController = TextEditingController();
-  OverlayEntry? _overlayEntry;
-
   List<Cliente> _clientes = [];
-  List<Cliente> _clientesFiltrados = [];
   Cliente? _clienteSelecionado;
+
+  bool _botaoHabilitado = false;
 
   @override
   void initState() {
     super.initState();
     _carregarClientes();
 
-    // Preenche a data se foi passada
     final data = widget.dataSelecionada;
     if (data != null) {
       _dataController.text = DateFormat('dd/MM/yyyy').format(data);
     }
 
-    _clienteFocusNode.addListener(() {
-      if (_clienteFocusNode.hasFocus) {
-        _filtrarClientes(_clienteController.text);
-      } else {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      }
-    });
+    // Adiciona listeners para atualizar o estado do botão quando data ou hora mudarem
+    _dataController.addListener(_atualizarBotaoHabilitado);
+    _horaController.addListener(_atualizarBotaoHabilitado);
   }
 
   Future<void> _carregarClientes() async {
     final clientes = await _dbService.listarClientes();
     setState(() {
       _clientes = clientes;
-      _clientesFiltrados = clientes;
     });
   }
 
@@ -65,75 +53,38 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
     _dataController.dispose();
     _horaController.dispose();
     _observacoesController.dispose();
-    _clienteController.dispose();
-    _clienteFocusNode.dispose();
-    _overlayEntry?.remove();
     super.dispose();
   }
 
-  void _filtrarClientes(String query) {
-    _clientesFiltrados = _clientes
-        .where((c) => c.nome.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+  void _atualizarBotaoHabilitado() {
+    final dataValida = _validarDataHora();
+    final clienteSelecionado = _clienteSelecionado != null;
+    final formValido = _formKey.currentState?.validate() ?? false;
 
-    _mostrarOverlay();
+    final habilitar = dataValida && clienteSelecionado && formValido;
+
+    if (_botaoHabilitado != habilitar) {
+      setState(() {
+        _botaoHabilitado = habilitar;
+      });
+    }
   }
 
-  void _mostrarOverlay() {
-    _overlayEntry?.remove();
+  bool _validarDataHora() {
+    if (_dataController.text.isEmpty || _horaController.text.isEmpty) return false;
 
-    if (_clientesFiltrados.isEmpty || !_clienteFocusNode.hasFocus) return;
+    try {
+      final data = DateFormat('dd/MM/yyyy').parse(_dataController.text.trim());
+      final partesHora = _horaController.text.trim().split(":");
+      if (partesHora.length != 2) return false;
 
-    final overlay = Overlay.of(context);
-    final renderBox = context.findRenderObject() as RenderBox;
-    final tamanhoCampo = renderBox.size;
+      final hora = int.parse(partesHora[0]);
+      final minuto = int.parse(partesHora[1]);
 
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: tamanhoCampo.width - 32, // Considera padding do ListView
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(16, 60),
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              itemCount: _clientesFiltrados.length,
-              itemBuilder: (context, index) {
-                final cliente = _clientesFiltrados[index];
-                return ListTile(
-                  title: Text(cliente.nome),
-                  onTap: () {
-                    setState(() {
-                      _clienteSelecionado = cliente;
-                      _clienteController.text = cliente.nome;
-                      _overlayEntry?.remove();
-                      _overlayEntry = null;
-                      _clienteFocusNode.unfocus();
-                    });
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(_overlayEntry!);
-  }
-
-  void _abrirListaClientes() {
-    if (_overlayEntry != null) {
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      _clienteFocusNode.unfocus();
-    } else {
-      FocusScope.of(context).requestFocus(_clienteFocusNode);
-      _filtrarClientes('');
+      final dataHora = DateTime(data.year, data.month, data.day, hora, minuto);
+      return dataHora.isAfter(DateTime.now());
+    } catch (_) {
+      return false;
     }
   }
 
@@ -146,6 +97,7 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
     );
     if (data != null) {
       _dataController.text = DateFormat('dd/MM/yyyy').format(data);
+      _atualizarBotaoHabilitado();
     }
   }
 
@@ -155,18 +107,14 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
       initialTime: TimeOfDay.now(),
     );
     if (hora != null) {
-      _horaController.text = hora.format(context);
+      final formattedTime = hora.format(context);
+      _horaController.text = formattedTime;
+      _atualizarBotaoHabilitado();
     }
   }
 
   void _salvar() async {
-    if (_formKey.currentState!.validate()) {
-      if (_clienteSelecionado == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Selecione um cliente")),
-        );
-        return;
-      }
+    if (_formKey.currentState!.validate() && _validarDataHora() && _clienteSelecionado != null) {
       try {
         final data = DateFormat('dd/MM/yyyy').parse(_dataController.text.trim());
         final partesHora = _horaController.text.trim().split(":");
@@ -187,7 +135,7 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
         final novaAgenda = Agenda(
           clienteId: _clienteSelecionado!.id!,
           dataHora: dataHora,
-          observacoes: _observacoesController.text,
+          observacao: _observacoesController.text,
         );
 
         await _dbService.inserirAgenda(novaAgenda);
@@ -197,6 +145,10 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
           const SnackBar(content: Text("Erro ao processar data ou hora. Verifique o formato.")),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha todos os campos corretamente e selecione uma data/hora futura.")),
+      );
     }
   }
 
@@ -204,29 +156,22 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Adicionar Agenda",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("Adicionar Agenda", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: CircleAvatar(
             backgroundColor: Colors.white,
-            child: Icon(
-              Icons.arrow_back,
-              color: Colors.purple,
-            ),
+            child: Icon(Icons.arrow_back, color: Colors.purple),
           ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
+          onChanged: _atualizarBotaoHabilitado, // valida ao mudar qualquer campo
           child: ListView(
             children: [
               DropdownSearch<Cliente>(
@@ -234,20 +179,16 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
                 itemAsString: (Cliente c) => c.nome,
                 selectedItem: _clienteSelecionado,
                 dropdownDecoratorProps: const DropDownDecoratorProps(
-                  dropdownSearchDecoration: InputDecoration(
-                    labelText: "Cliente",
-                  ),
+                  dropdownSearchDecoration: InputDecoration(labelText: "Cliente"),
                 ),
                 onChanged: (Cliente? cliente) {
                   setState(() {
                     _clienteSelecionado = cliente;
-                    _clienteController.text = cliente?.nome ?? '';
+                    _atualizarBotaoHabilitado();
                   });
                 },
                 enabled: _clientes.isNotEmpty,
-                popupProps: const PopupProps.menu(
-                  showSearchBox: true,
-                ),
+                popupProps: const PopupProps.menu(showSearchBox: true),
                 validator: (value) => value == null ? 'Selecione um cliente' : null,
               ),
               const SizedBox(height: 16),
@@ -255,68 +196,66 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
                 controller: _dataController,
                 decoration: const InputDecoration(
                   labelText: 'Data',
-                  suffixIcon: Icon(
-                    Icons.calendar_today,
-                    color: Colors.purple,
-                  ),
+                  suffixIcon: Icon(Icons.calendar_today, color: Colors.purple),
                 ),
                 readOnly: true,
                 onTap: _selecionarData,
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Informe a data' : null,
+                //validator: (value) => value == null || value.isEmpty ? 'Informe a data' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _horaController,
                 decoration: const InputDecoration(
                   labelText: 'Hora',
-                  suffixIcon: Icon(
-                    Icons.access_time,
-                    color: Colors.purple,
-                  ),
+                  suffixIcon: Icon(Icons.access_time, color: Colors.purple),
                 ),
                 readOnly: true,
-                onTap: () async {
-                  final TimeOfDay? pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                    builder: (context, child) {
-                      return MediaQuery(
-                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-                        child: child!,
-                      );
-                    },
-                  );
-
-                  if (pickedTime != null) {
-                    final formattedTime =
-                        '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
-                    _horaController.text = formattedTime;
-                  }
-                },
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Informe a hora' : null,
+                onTap: _selecionarHora,
+                //validator: (value) => value == null || value.isEmpty ? 'Informe a hora' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _observacoesController,
-                decoration: const InputDecoration(
-                  labelText: 'Observações',
-                ),
+                decoration: const InputDecoration(labelText: 'Observações'),
                 maxLines: 3,
               ),
-              const SizedBox(height: 20),
+              /*const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _salvar,
+                onPressed: _botaoHabilitado ? _salvar : null,
                 child: const Text('Salvar'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   textStyle: const TextStyle(fontSize: 18),
                 ),
-              ),
+              ),*/
             ],
           ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home_agenda",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/'));
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "salvar_agenda",
+              backgroundColor: Colors.deepPurple,
+              onPressed: _botaoHabilitado ? _salvar : null,
+              child: const Icon(Icons.done),
+            ),
+          ],
         ),
       ),
     );

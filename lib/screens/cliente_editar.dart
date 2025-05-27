@@ -46,7 +46,7 @@ class _ClienteEditarState extends State<ClienteEditar> {
     precoController = MoneyMaskedTextController (
       decimalSeparator: ',',
       thousandSeparator: '.',
-      initialValue: 0.0,
+      initialValue: widget.cliente.precoAtendimento ?? 0.0,
     );
     ufController = TextEditingController(text: widget.cliente.uf);
     ufSelecionada = (widget.cliente.uf != null && widget.cliente.uf!.isNotEmpty)

@@ -19,11 +19,19 @@ class DatabaseService {
     return await db.insert('clientes', cliente.toMap());
   }
 
-  /*Future<List<Agenda>> listarAgendas() async {
+  Future<void> registrarSaque({
+    required double valor,
+    required String observacao,
+    required DateTime data,
+  }) async {
     final db = await _dbHelper.database;
-    final List<Map<String, dynamic>> resultado = await db.query('agenda');
-    return resultado.map((map) => Agenda.fromMap(map)).toList();
-  }*/
+
+    await db.insert('saques', {
+      'valor': valor,
+      'observacao': observacao,
+      'data': data.toIso8601String(),
+    });
+  }
 
   Future<List<Agenda>> listarAgendas() async {
   final db = await _dbHelper.database;
@@ -33,7 +41,7 @@ class DatabaseService {
         agenda.id,
         agenda.cliente_id,
         agenda.data_hora,
-        agenda.observacoes,
+        agenda.observacao,
         clientes.nome AS nome_cliente
       FROM agenda
       JOIN clientes ON agenda.cliente_id = clientes.id
@@ -148,6 +156,57 @@ class DatabaseService {
   Future<int> deletarCliente(int id) async {
     final db = await _dbHelper.database;
     return await db.delete('clientes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, dynamic>>> totalPagamentosPorMes() async {
+    final db = await _dbHelper.database;
+    return await db.rawQuery('''
+      SELECT strftime('%Y-%m', data) AS mes, SUM(valor_pago) AS total
+      FROM pagamento
+      GROUP BY mes
+      ORDER BY mes DESC
+    ''');
+  }
+
+  Future<List<Map<String, dynamic>>> listarSaques() async {
+    final db = await _dbHelper.database;
+    return await db.query('saques', orderBy: 'data DESC');
+  }
+
+  Future<List<Map<String, dynamic>>> totalPagamentosPorMesFiltrado(String mes, String ano) async {
+    final db = await _dbHelper.database;
+    // O campo "data" está em formato texto (YYYY-MM-DD)
+    final filtro = '$ano-$mes'; // exemplo: "2025-05"
+    return await db.rawQuery('''
+      SELECT strftime('%Y-%m', data) AS mes, SUM(valor_pago) AS total
+      FROM pagamento
+      WHERE strftime('%Y-%m', data) = ?
+      GROUP BY mes
+      ORDER BY mes DESC
+    ''', [filtro]);
+  }
+
+  Future<void> inserirPagamento({
+    required int clienteId,
+    required int atendimentoId,
+    required double valorCobrado,
+    required double valorPago,
+    required String tipoPgto,
+    required String data,
+    required String hora,
+    String? observacao,
+  }) async {
+    final db = await _dbHelper.database;
+    await db.insert('pagamento', {
+      'cliente_id': clienteId,
+      'atendimento_id': atendimentoId,
+      'valor_cobrado': valorCobrado,
+      'valor_pago': valorPago,
+      'tipo_pgto': tipoPgto,
+      'data': data,
+      'hora': hora,
+      'observacao': observacao ?? '',
+    });
   }
 
 /*

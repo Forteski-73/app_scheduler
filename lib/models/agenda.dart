@@ -2,14 +2,14 @@ class Agenda {
   int? id;
   int clienteId;
   DateTime dataHora;
-  String? observacoes;
+  String? observacao;
   String? nomeCliente; // <-- novo campo (não armazenado no banco diretamente)
 
   Agenda({
     this.id,
     required this.clienteId,
     required this.dataHora,
-    this.observacoes,
+    this.observacao,
     this.nomeCliente,
   });
 
@@ -18,7 +18,7 @@ class Agenda {
       'id': id,
       'cliente_id': clienteId,
       'data_hora': dataHora.toIso8601String(),
-      'observacoes': observacoes,
+      'observacao': observacao,
       // 'nomeCliente' não é salvo no banco
     };
   }
@@ -28,7 +28,7 @@ class Agenda {
       id: map['id'],
       clienteId: map['cliente_id'],
       dataHora: DateTime.parse(map['data_hora']),
-      observacoes: map['observacoes'],
+      observacao: map['observacao'],
       nomeCliente: map['nome_cliente'], // <-- precisa vir de um JOIN
     );
   }

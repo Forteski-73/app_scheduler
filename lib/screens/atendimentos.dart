@@ -180,13 +180,35 @@ class _AtendimentosState extends State<Atendimentos> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/atendimento_adicionar');
-          _carregarAtendimentos();
-        },
-        child: const Icon(Icons.add),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/'));
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "adicionar",
+              backgroundColor: Colors.deepPurple,
+              onPressed: () async {
+                await Navigator.pushNamed(context, '/atendimento_adicionar');
+                _carregarAtendimentos();
+              },
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
       ),
+
     );
   }
 }

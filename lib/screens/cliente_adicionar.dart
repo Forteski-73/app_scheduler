@@ -111,7 +111,13 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
                 value: _ufSelecionado,
                 isExpanded: true,
                 items: _estados.map((uf) {
-                  return DropdownMenuItem(value: uf, child: Text(uf));
+                  return DropdownMenuItem(
+                    value: uf,
+                    child: Text(
+                      uf,
+                      style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+                    ),
+                  );
                 }).toList(),
                 onChanged: (valor) {
                   setState(() {
@@ -186,37 +192,57 @@ class _ClienteAdicionarState extends State<ClienteAdicionar> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    String precoTexto = "";
-                    if(precoAtendimentoController.text.isNotEmpty)
-                    {
-                      precoTexto = precoAtendimentoController.text.trim();
-                      precoTexto = precoTexto.replaceAll('.', '').replaceAll(',', '.');
-                    }
-                    double precoAtendimento = double.tryParse(precoTexto) ?? 0.0;
-                    final cliente = Cliente(
-                      nome: nomeController.text,
-                      email: emailController.text,
-                      telefone: telefoneController.text,
-                      cidade: _cidadeSelecionada?.nome ?? _cidadeManual,
-                      uf: _ufSelecionado,
-                      precoAtendimento: precoAtendimento,
-                      dataCadastro: DateTime.now(),
-                    );
-                    await _dbService.inserirCliente(cliente);
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Salvar"),
-                ),
-              ),
+
             ],
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: "home",
+              backgroundColor: Colors.purple,
+              onPressed: () {
+                Navigator.popUntil(context, ModalRoute.withName('/'));
+              },
+              child: const Icon(Icons.home),
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton(
+              heroTag: "salvar_cliente",
+              backgroundColor: Colors.deepPurple,
+              onPressed: () async {
+                String precoTexto = "";
+                if (precoAtendimentoController.text.isNotEmpty) {
+                  precoTexto = precoAtendimentoController.text.trim();
+                  precoTexto = precoTexto.replaceAll('.', '').replaceAll(',', '.');
+                }
+                double precoAtendimento = double.tryParse(precoTexto) ?? 0.0;
+
+                final cliente = Cliente(
+                  nome: nomeController.text,
+                  email: emailController.text,
+                  telefone: telefoneController.text,
+                  cidade: _cidadeSelecionada?.nome ?? _cidadeManual,
+                  uf: _ufSelecionado,
+                  precoAtendimento: precoAtendimento,
+                  dataCadastro: DateTime.now(),
+                );
+
+                await _dbService.inserirCliente(cliente);
+                Navigator.pop(context);
+              },
+              child: const Icon(Icons.done),
+            ),
+          ],
+        ),
+      ),
+
     );
   }
 }

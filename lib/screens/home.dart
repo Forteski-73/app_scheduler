@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oxf_client/screens/clientes.dart';
 import 'package:oxf_client/screens/agendas.dart';
 import 'package:oxf_client/screens/atendimentos.dart';
-import 'package:oxf_client/screens/pagamento.dart';
+import 'package:oxf_client/screens/financeiro.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -50,13 +50,13 @@ class Home extends StatelessWidget {
           ElevatedButton.icon(
             icon: const Icon(Icons.payment, color: Colors.white, size: 28),
             label: const Text(
-              'Pagamentos',
+              'Financeiro',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Pagamentos()),
+                MaterialPageRoute(builder: (context) => RelatorioFinanceiro()),
               );
             },
           ),

@@ -19,13 +19,17 @@ class _AgendaEditarState extends State<AgendaEditar> {
   late TextEditingController _dataController;
   late TextEditingController _horaController;
 
+  bool _isSalvarEnabled = true;
+
   @override
   void initState() {
     super.initState();
     _dataHora = widget.agenda.dataHora;
     _dataController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(_dataHora));
     _horaController = TextEditingController(text: DateFormat('HH:mm').format(_dataHora));
-    _observacoesController = TextEditingController(text: widget.agenda.observacoes ?? '');
+    _observacoesController = TextEditingController(text: widget.agenda.observacao ?? '');
+
+    _verificarDataHora();
   }
 
   @override
@@ -34,6 +38,13 @@ class _AgendaEditarState extends State<AgendaEditar> {
     _dataController.dispose();
     _horaController.dispose();
     super.dispose();
+  }
+
+  void _verificarDataHora() {
+    final agora = DateTime.now();
+    setState(() {
+      _isSalvarEnabled = !_dataHora.isBefore(agora);
+    });
   }
 
   Future<void> _selecionarData() async {
@@ -46,8 +57,15 @@ class _AgendaEditarState extends State<AgendaEditar> {
 
     if (dataSelecionada != null) {
       setState(() {
-        _dataHora = dataSelecionada;
+        _dataHora = DateTime(
+          dataSelecionada.year,
+          dataSelecionada.month,
+          dataSelecionada.day,
+          _dataHora.hour,
+          _dataHora.minute,
+        );
         _dataController.text = DateFormat('dd/MM/yyyy').format(_dataHora);
+        _verificarDataHora();
       });
     }
   }
@@ -68,6 +86,7 @@ class _AgendaEditarState extends State<AgendaEditar> {
           horaSelecionada.minute,
         );
         _horaController.text = DateFormat('HH:mm').format(_dataHora);
+        _verificarDataHora();
       });
     }
   }
@@ -78,11 +97,10 @@ class _AgendaEditarState extends State<AgendaEditar> {
         id: widget.agenda.id,
         clienteId: widget.agenda.clienteId,
         dataHora: _dataHora,
-        observacoes: _observacoesController.text,
+        observacao: _observacoesController.text,
         nomeCliente: widget.agenda.nomeCliente,
       );
 
-      // Atualizar a agenda no banco
       DatabaseService().atualizarAgenda(novaAgenda).then((rowsAffected) {
         if (rowsAffected > 0) {
           Navigator.pop(context, novaAgenda);
@@ -138,7 +156,6 @@ class _AgendaEditarState extends State<AgendaEditar> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Campo de data
               InkWell(
                 onTap: _selecionarData,
                 child: InputDecorator(
@@ -154,7 +171,6 @@ class _AgendaEditarState extends State<AgendaEditar> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Campo de hora
               InkWell(
                 onTap: _selecionarHora,
                 child: InputDecorator(
@@ -180,21 +196,44 @@ class _AgendaEditarState extends State<AgendaEditar> {
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 20),
-              Center(
+              /*Center(
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _salvar,
+                    onPressed: _isSalvarEnabled ? _salvar : null,
                     child: const Text('Salvar'),
                   ),
                 ),
-              ),
+              ),*/
             ],
           ),
         ),
       ),
+floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+floatingActionButton: Padding(
+  padding: const EdgeInsets.only(bottom: 16.0),
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      FloatingActionButton(
+        heroTag: "home",
+        backgroundColor: Colors.purple,
+        onPressed: () {
+          Navigator.popUntil(context, ModalRoute.withName('/')); // ou ajuste a rota principal
+        },
+        child: const Icon(Icons.home),
+      ),
+      const SizedBox(width: 16),
+      FloatingActionButton(
+        heroTag: "salvar",
+        backgroundColor: _isSalvarEnabled ? Colors.deepPurple : Colors.grey,
+        onPressed: _isSalvarEnabled ? _salvar : null,
+        child: const Icon(Icons.done),
+      ),
+    ],
+  ),
+),
     );
   }
-
-
 }

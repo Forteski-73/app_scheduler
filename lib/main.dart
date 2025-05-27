@@ -11,7 +11,7 @@ import 'package:oxf_client/screens/agenda_editar.dart';
 import 'package:oxf_client/screens/atendimento_editar.dart';
 import 'package:oxf_client/screens/atendimento_adicionar.dart';
 import 'package:oxf_client/screens/calendario.dart';
-import 'package:oxf_client/screens/pagamento.dart';
+import 'package:oxf_client/screens/financeiro.dart';
 
 // Models
 import 'package:oxf_client/models/cliente.dart';
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Oxford Atendimento',
+      title: 'Atendimento',
       debugShowCheckedModeBanner: false,
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [
@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: Colors.purple),
         textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: Colors.purple),
+          bodyMedium: TextStyle(color: Color.fromARGB(255, 5, 5, 5)),
           titleLarge: TextStyle(color: Colors.purple, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -96,7 +96,7 @@ class MyApp extends StatelessWidget {
         },
         '/atendimento_adicionar': (context) => AtendimentoAdicionar(),
         '/calendario': (context) => const Calendario(),
-        '/pagamento': (context) => const Pagamentos(),
+        '/pagamento': (context) => const RelatorioFinanceiro(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/cliente_editar') {
@@ -212,7 +212,7 @@ class Home extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Pagamentos()),
+                    MaterialPageRoute(builder: (context) => RelatorioFinanceiro()),
                   );
                 },
               ),

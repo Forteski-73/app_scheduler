@@ -18,7 +18,7 @@ class DatabaseCreate {
     final path = join(await getDatabasesPath(), 'oxf_client.db');
     return await openDatabase(
       path,
-      version: 1,  // Atualizar a versão aqui caso necessário
+      version: 2,  // Atualizar a versão aqui caso necessário
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -90,12 +90,22 @@ class DatabaseCreate {
         FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE saques (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        valor REAL NOT NULL,
+        data TEXT NOT NULL,
+        hora TEXT,
+        observacao TEXT
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       // Adiciona a coluna 'agenda_id', 'descricao' e 'realizado' se a versão for menor que 2
-      await db.execute('''
+      /*await db.execute('''
         ALTER TABLE atendimentos ADD COLUMN agenda_id INTEGER NOT NULL DEFAULT 0;
       ''');
 
@@ -105,7 +115,7 @@ class DatabaseCreate {
 
       await db.execute('''
         ALTER TABLE atendimentos ADD COLUMN realizado INTEGER NOT NULL DEFAULT 0;
-      ''');
+      ''');*/
 
       // Você também pode adicionar mais alterações se precisar de migração entre versões.
     }
