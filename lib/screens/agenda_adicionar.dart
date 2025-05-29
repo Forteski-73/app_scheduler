@@ -136,6 +136,49 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
           clienteId: _clienteSelecionado!.id!,
           dataHora: dataHora,
           observacao: _observacoesController.text,
+          nomeCliente: _clienteSelecionado!.nome,
+        );
+
+        await _dbService.inserirAgenda(novaAgenda);
+
+        // <-- AQUI ESTÁ O RETORNO COM A AGENDA INSERIDA
+        Navigator.pop(context, novaAgenda);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erro ao processar data ou hora. Verifique o formato.")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha todos os campos corretamente e selecione uma data/hora futura.")),
+      );
+    }
+  }
+
+  /*
+  void _salvar() async {
+    if (_formKey.currentState!.validate() && _validarDataHora() && _clienteSelecionado != null) {
+      try {
+        final data = DateFormat('dd/MM/yyyy').parse(_dataController.text.trim());
+        final partesHora = _horaController.text.trim().split(":");
+
+        final hora = TimeOfDay(
+          hour: int.parse(partesHora[0]),
+          minute: int.parse(partesHora[1]),
+        );
+
+        final dataHora = DateTime(
+          data.year,
+          data.month,
+          data.day,
+          hora.hour,
+          hora.minute,
+        );
+
+        final novaAgenda = Agenda(
+          clienteId: _clienteSelecionado!.id!,
+          dataHora: dataHora,
+          observacao: _observacoesController.text,
         );
 
         await _dbService.inserirAgenda(novaAgenda);
@@ -150,7 +193,7 @@ class _AgendaAdicionarState extends State<AgendaAdicionar> {
         const SnackBar(content: Text("Preencha todos os campos corretamente e selecione uma data/hora futura.")),
       );
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

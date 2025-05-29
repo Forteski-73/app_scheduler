@@ -22,9 +22,12 @@ dependencies:
   flutter_masked_text2: ^0.9.1
   dropdown_search: ^5.0.6
   http: ^0.13.6
-
   webview_flutter: ^4.7.0
   table_calendar: ^3.0.9
+  googleapis: ^11.4.0
+  googleapis_auth: ^1.4.0
+  google_sign_in: ^6.1.5
+  url_launcher: ^6.2.4
 
 dev_dependencies:
   flutter_test:
