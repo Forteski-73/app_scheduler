@@ -58,10 +58,25 @@ class _CalendarioState extends State<Calendario> {
     try {
       final account = await _googleSignIn.signIn();
       final authHeaders = await account?.authHeaders;
+      final brasiliaOffset = const Duration(hours: -3);
+      final tokenDuration = const Duration(hours: 1); 
 
       if (authHeaders == null) {
         throw Exception('Erro ao obter os cabeçalhos de autenticação');
       }
+
+      /*final client = auth.authenticatedClient(
+        http.Client(),
+        auth.AccessCredentials(
+          auth.AccessToken(
+            'Bearer',
+            authHeaders['Authorization']!.split(' ').last,
+            DateTime.now().add(Duration(hours: 1)).toUtc(),
+          ),
+          null,
+          [cal.CalendarApi.calendarScope],
+        ),
+      );*/
 
       final client = auth.authenticatedClient(
         http.Client(),
@@ -69,7 +84,7 @@ class _CalendarioState extends State<Calendario> {
           auth.AccessToken(
             'Bearer',
             authHeaders['Authorization']!.split(' ').last,
-            DateTime.now().add(Duration(hours: 1)).toUtc(),
+            DateTime.now().toUtc().add(brasiliaOffset + tokenDuration),
           ),
           null,
           [cal.CalendarApi.calendarScope],
