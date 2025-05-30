@@ -69,7 +69,7 @@ class _CalendarioState extends State<Calendario> {
           auth.AccessToken(
             'Bearer',
             authHeaders['Authorization']!.split(' ').last,
-            DateTime.now().add(Duration(hours: 1)),
+            DateTime.now().add(Duration(hours: 1)).toUtc(),
           ),
           null,
           [cal.CalendarApi.calendarScope],
